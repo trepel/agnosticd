@@ -10,6 +10,32 @@
     state: latest
   when: update_packages|bool
 
+- name: Reboot all VMs after updating to the latest release
+  reboot:
+    connect_timeout: 300
+    msg: "Ansible updates installing. Rebooting now."
+    pre_reboot_delay: 60
+    post_reboot_delay: 10
+  when:
+  - update_packages|bool
+  - ansible_version.minor >= 7
+
+- name: Reboot all VMs after updating to the latest release
+  shell: "sleep 2 && shutdown -r now "
+  async: 1
+  poll: 0
+  ignore_errors: true
+  when:
+  - update_packages|bool
+  - ansible_version.minor < 7
+
+- name: Wait for VMs to come back up
+  sudo: no
+  local_action: wait_for host="{{ inventory_hostname }}" search_regex=OpenSSH port=22 timeout=300
+  when:
+  - update_packages|bool
+  - ansible_version.minor < 7
+
 ######################## Install Basic Packages
 - name: Install Basic Packages
   import_tasks: ./packages.yml
