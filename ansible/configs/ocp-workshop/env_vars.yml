@@ -406,7 +406,7 @@ instances:
 
   - name: "node"
     count: "{{node_instance_count}}"
-    public_dns: true
+    public_dns: false
     dns_loadbalancer: false
     flavor:
       ec2: "{{node_instance_type}}"
