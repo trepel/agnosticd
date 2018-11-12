@@ -26,7 +26,7 @@ def ssh_location = ''
 def choices = [
     'OPENTLC OpenShift Labs / OpenShift Client VM',
     'DevOps Deployment Testing / OpenShift Client VM - Testing',
-    'DevOps Deployment Development / DEV OpenShift Client VM',
+    'DevOps Team Development / DEV OpenShift Client VM',
 ].join("\n")
 
 def ocprelease_choice = [
@@ -38,6 +38,12 @@ def ocprelease_choice = [
     '3.10.14',
 ].join("\n")
 
+def region_choice = [
+    'na',
+    'emea',
+    'latam',
+    'apac',
+].join("\n")
 
 pipeline {
     agent any
@@ -62,6 +68,12 @@ pipeline {
             description: 'Catalog item',
             name: 'ocprelease',
         )
+
+        choice(
+            choices: region_choice,
+            description: 'Region',
+            name: 'region',
+        )
     }
 
     stages {
@@ -69,6 +81,7 @@ pipeline {
             environment {
                 uri = "${cf_uri}"
                 credentials = credentials("${opentlc_creds}")
+                CURLOPT = "-k"
             }
             /* This step use the order_svc_guid.sh script to order
              a service from CloudForms */
@@ -79,6 +92,7 @@ pipeline {
                     def catalog = params.catalog_item.split(' / ')[0].trim()
                     def item = params.catalog_item.split(' / ')[1].trim()
                     def ocprelease = params.ocprelease.trim()
+                    def region = params.region.trim()
                     echo "'${catalog}' '${item}'"
                     guid = sh(
                         returnStdout: true,
@@ -87,7 +101,7 @@ pipeline {
                           -c '${catalog}' \
                           -i '${item}' \
                           -G '${cf_group}' \
-                          -d 'check=t,quotacheck=t,ocprelease=${ocprelease}'
+                          -d 'check=t,quotacheck=t,ocprelease=${ocprelease},runtime=8,expiration=7,region=${region}'
                         """
                     ).trim()
 
@@ -168,6 +182,7 @@ pipeline {
                 uri = "${cf_uri}"
                 credentials = credentials("${opentlc_creds}")
                 admin_credentials = credentials("${opentlc_admin_creds}")
+                CURLOPT = '-k'
             }
             /* This step uses the delete_svc_guid.sh script to retire
              the service from CloudForms */
@@ -226,6 +241,7 @@ pipeline {
                 ]
             ) {
                 sh """
+                export CURLOPT='-k'
                 export uri="${cf_uri}"
                 ./opentlc/delete_svc_guid.sh '${guid}'
                 """

@@ -3,8 +3,8 @@
 ######################### Install Basic Packages
 - name: install basic packages
   yum:
-    state: present
     name: "{{common_packages}}"
+    state: present
   register: yumr
   until: yumr is succeeded
   retries: 10
