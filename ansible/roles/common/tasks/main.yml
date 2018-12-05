@@ -13,12 +13,15 @@
     yum:
       name: '*'
       state: latest
+      
   - name: Reboot all VMs after updating to the latest packages (Ansible 2.6 version)
-    include_tasks: ./reboot_26.yml
+    include_tasks: reboot_26.yml
     when: ansible_version.full is version_compare("2.7", "<")
+    
   - name: Reboot all VMs after updating to the latest packages (Ansible 2.7+ version)
-    include_tasks: ./reboot_26.yml
+    include_tasks: reboot_27.yml
     when: ansible_version.full is version_compare("2.7", ">=")
+    
   - name: Update network facts after reboot
     setup:
       gather_subset:
@@ -27,6 +30,6 @@
 
 ######################## Install Basic Packages
 - name: Install Basic Packages
-  import_tasks: ./packages.yml
+  import_tasks: packages.yml
   tags:
     - install_basic_packages
