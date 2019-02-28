@@ -1,0 +1,14 @@
+= AWS sandbox accounts
+
+
+This role is to create an AWS sandbox account using 'organizations'.
+
+
+.Example
+----
+ansible localhost -m include_role -a name=infra-aws-sandbox \
+-e aws_master_profile=gpe-gucore \
+-e account_name=sandbox2 \
+-e account_email=sandbox2@opentlc.com \
+-e account_destination_ou=sandboxes
+----
