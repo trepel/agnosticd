@@ -1,86 +1,24 @@
 ---
-- name: List all accounts in the organization.
-  command: >-
-    aws --profile {{ aws_master_profile }}
-    organizations list-accounts
-    --query 'Accounts[].Name'
-  register: _listaccounts
-  changed_when: false
+- name: Create output_dir
+  file:
+    path: "{{ output_dir }}"
+    state: directory
 
-- when: account_name not in _listaccounts.stdout|from_json|list
-  name: Create New account.
-  command: >-
-    aws --profile {{ aws_master_profile }}
-    organizations create-account
-    --email {{ account_email }}
-    --account-name "{{ account_name }}"
-    --role-name "{{ aws_role_name }}"
-    --query 'CreateAccountStatus.[Id]'
-    --output text
-  register: _createaccount
+- include_tasks: test_ipa.yml
+  when:
+    - kerberos_user is defined
+    - kerberos_password is defined
 
-- when:
-    - _createaccount is not skipped
-    - _createaccount.stdout != ''
-  block:
-    - name: Wait for account to be created.
-      command: >-
-        aws --profile {{ aws_master_profile }}
-        organizations describe-create-account-status
-        --create-account-request-id {{ _createaccount.stdout }}
-        --query 'CreateAccountStatus.[State]'
-        --output text
-      register: _describestatus
-      until: _describestatus.stdout in ['SUCCEEDED', 'FAILED']
-      delay: 10
-      retries: 20
+- import_tasks: account.yml
+- import_tasks: profile.yml
+- import_tasks: iam.yml
 
-    - fail:
-        msg: The creation of the account failed.
-      when: _describestatus.stdout == 'FAILED'
-
-    - name: Get the account ID
-      command: >-
-        aws --profile {{ aws_master_profile }}
-        organizations describe-create-account-status
-        --create-account-request-id {{ _createaccount.stdout }}
-        --query 'CreateAccountStatus.[AccountId]'
-        --output text
-      register: _describestatusid
-
-    - name: Save account id in variable 'account_id'
-      set_fact:
-        account_id: "{{ _describestatusid.stdout }}"
-
-- when:
-    - _createaccount is skipped
-    - account_id is not defined
-  fail:
-    msg: Account already exists, please set the variable account_id
-
-- name: Set account arn
-  set_fact:
-    account_arn: "arn:aws:iam::{{ account_id }}:role/{{ aws_role_name }}"
-
-- debug:
-    var: account_arn
-
-- name: Creating a new AWS profile for the new account
-  shell: |-
-    aws --profile {{ account_profile }} configure set region {{ aws_region }}
-    aws --profile {{ account_profile }} configure set role_arn {{ account_arn }}
-    aws --profile {{ account_profile }} configure set source_profile {{ aws_master_profile }}
-
-- name: Create IAM role using Cloudformation
-  cloudformation:
-    profile: "{{ account_profile }}"
-    template: roles/infra-aws-sandbox/files/CF-IAM.json
-    region: "{{ aws_region }}"
-    stack_name: roles
-
-- when: account_destination_ou is defined
-  include_tasks: ou.yml
+- include_tasks: ou.yml
+  when: account_destination_ou is defined
 
 - import_tasks: user.yml
-
 - import_tasks: route53.yml
+- include_tasks: ipa.yml
+  when:
+    - kerberos_user is defined
+    - kerberos_password is defined

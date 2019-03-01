@@ -14,3 +14,5 @@ aws_role_name: OrganizationAccountAccessRole
 
 subdomain_base: .opentlc.com
 output_dir: '.'
+
+ipa_domain: opentlc.com
