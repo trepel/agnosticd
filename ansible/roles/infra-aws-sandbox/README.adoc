@@ -5,6 +5,7 @@ This role is to create an AWS sandbox account using 'organizations'.
 
 
 .Example
+[source,shell]
 ----
 ansible localhost \
 -m include_role -a name=infra-aws-sandbox \
@@ -15,11 +16,13 @@ ansible localhost \
 ----
 
 .Example running from admin-dev and add DNS records into IPA
+[source,shell]
 ----
 ansible -i admin-dev, admin-dev \
 -m include_role -a "name=infra-aws-sandbox" \
 -e ansible_user=gucore-redhat.com \
--e @~/secrets/ipa.yml \
+-e kerberos_user=gucore-redhat.com \
+-e kerberos_password=... \
 -e aws_master_profile=master-account \
 -e account_name=sandbox2 \
 -e account_email=sandbox2@opentlc.com \
